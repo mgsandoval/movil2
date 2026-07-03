@@ -1,0 +1,4 @@
+*.htaccess
+*.xml
+.env
+.vscode
