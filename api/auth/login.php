@@ -35,7 +35,7 @@ try
 
     $usuario    = trim($input['user'] ?? '');
     $clave      = $input['pass'] ?? '';
-    $empresa_id = 1;//$input['empresa_id'] ?? 0;
+    $empresa_id = 0;//$input['empresa_id'] ?? 0;
     //$dispo_unique_id = $input['device_id'] ?? null;
     //$ip_origen  = $_SERVER['REMOTE_ADDR'] ?? 'desconocida';
 

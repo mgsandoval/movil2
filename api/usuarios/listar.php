@@ -24,15 +24,15 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST')
     exit();
 }
 
-// Recibir JSON (empresa_id es opcional, por defecto 1)
+// Recibir JSON (empresa_id es opcional, por defecto 0)
 $input = json_decode(file_get_contents('php://input'), true);
-$empresa_id = isset($input['empresa_id']) ? (int) $input['empresa_id'] : 1;
+$empresa_id = isset($input['empresa_id']) ? (int) $input['empresa_id'] : 0;
 
 $sql = "
-    SELECT usuario_id, usuario_nombre, usuario_nombrecomp, usuario_correo
+    SELECT usuario_id, usuario_nombre, usuario_nombrecomp, usuario_correo, usuario_telefono
     FROM tbl_usuario
     WHERE empresa_id = ?
-    ORDER BY usuario_nombrecomp
+    ORDER BY usuario_id
 ";
 
 $conexion = Database::getInstance();

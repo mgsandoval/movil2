@@ -37,7 +37,7 @@ try
     $clave       = $input['pass'] ?? '';
     $correo      = trim($input['email'] ?? '');
     $telefono    = trim($input['phone'] ?? '');
-    $empresa_id  = 1;
+    $empresa_id  = isset($input['empresa_id']) && $input['empresa_id'] !== '' ? (int) $input['empresa_id'] : 0;
 
     // 2️⃣ Validar campos obligatorios
     if (empty($usuario) || empty($nombreComp) || empty($clave) || empty($correo) || empty($telefono))
