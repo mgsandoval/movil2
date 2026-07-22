@@ -52,19 +52,22 @@ try
         throw new Exception('No se pudo conectar a la base de datos.');
     }
 
-    // 4️⃣ Buscar el usuario
+    // 4️⃣ Buscar el usuario (incluye estado global y foto de perfil)
     $stmt = mysqli_prepare($conexion, "
-        SELECT 
-            usuario_id, 
-            usuario_nombre, 
-            usuario_clave, 
-            usuario_nombrecomp, 
-            usuario_correo,
-            usuario_telefono,
-            empresa_id
-        FROM tbl_usuario 
-        WHERE usuario_nombre = ? 
-          AND empresa_id = ?
+        SELECT
+            u.usuario_id,
+            u.usuario_nombre,
+            u.usuario_clave,
+            u.usuario_nombrecomp,
+            u.usuario_correo,
+            u.usuario_telefono,
+            u.empresa_id,
+            u.usuario_estado,
+            img.usuario_img_ruta
+        FROM tbl_usuario u
+        LEFT JOIN tbl_usuario_img img ON img.usuario_id = u.usuario_id
+        WHERE u.usuario_nombre = ?
+          AND u.empresa_id = ?
         LIMIT 1
     ");
 
@@ -95,6 +98,18 @@ try
         exit;
     }
 
+    // 5️⃣.1 Verificar acceso GLOBAL a la app (grant/revoke)
+    if (isset($user['usuario_estado']) && (int)$user['usuario_estado'] === 0)
+    {
+        http_response_code(403);
+        echo json_encode([
+            'exito'    => false,
+            'revocado' => true,
+            'mensaje'  => 'Tu acceso a la aplicación ha sido revocado. Contacta al administrador.'
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
     // 6️⃣ ✅ LOGIN EXITOSO - Actualizar último acceso
     $updateStmt = mysqli_prepare($conexion, "
         UPDATE tbl_usuario 
@@ -114,7 +129,9 @@ try
                 'nombre_completo' => $user['usuario_nombrecomp'],
                 'correo'          => $user['usuario_correo'],
                 'telefono'        => $user['usuario_telefono'],
-                'empresa_id'      => $user['empresa_id']
+                'empresa_id'      => $user['empresa_id'],
+                'estado'          => (int)$user['usuario_estado'],
+                'img_ruta'        => $user['usuario_img_ruta']
             ]
         ], JSON_UNESCAPED_UNICODE);
 

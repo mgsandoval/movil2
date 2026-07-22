@@ -1,6 +1,7 @@
 <?php
-// api/usuarios/listar.php
-// Lista los usuarios de una empresa para poblar el combobox de gestión de accesos.
+// api/usuarios/setEstado.php
+// Concede (1) o revoca (0) el acceso GLOBAL de un usuario a la app.
+// Actualiza tbl_usuario.usuario_estado.
 header('Content-Type: application/json; charset=utf-8');
 require_once '../../config/database.php';
 require_once '../../config/cors.php';
@@ -14,7 +15,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS')
     exit();
 }
 
-// Solo aceptar POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST')
 {
     echo json_encode([
@@ -24,24 +24,19 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST')
     exit();
 }
 
-// Recibir JSON (empresa_id es opcional, por defecto 0)
 $input = json_decode(file_get_contents('php://input'), true);
-$empresa_id = isset($input['empresa_id']) ? (int) $input['empresa_id'] : 0;
 
-$sql = "
-    SELECT
-        u.usuario_id,
-        u.usuario_nombre,
-        u.usuario_nombrecomp,
-        u.usuario_correo,
-        u.usuario_telefono,
-        u.usuario_estado,
-        img.usuario_img_ruta
-    FROM tbl_usuario u
-    LEFT JOIN tbl_usuario_img img ON img.usuario_id = u.usuario_id
-    WHERE u.empresa_id = ?
-    ORDER BY u.usuario_id
-";
+if (!isset($input['usuario_id']) || !isset($input['estado']))
+{
+    echo json_encode([
+        'status'  => 'error',
+        'message' => 'Faltan parámetros: usuario_id y estado son requeridos'
+    ]);
+    exit();
+}
+
+$usuario_id = (int) $input['usuario_id'];
+$estado     = ((int) $input['estado']) === 1 ? 1 : 0;
 
 $conexion = Database::getInstance();
 
@@ -55,6 +50,7 @@ if (!$conexion)
     exit();
 }
 
+$sql  = "UPDATE tbl_usuario SET usuario_estado = ? WHERE usuario_id = ?";
 $stmt = $conexion->prepare($sql);
 
 if (!$stmt)
@@ -69,14 +65,14 @@ if (!$stmt)
     exit();
 }
 
-$stmt->bind_param('i', $empresa_id);
+$stmt->bind_param('ii', $estado, $usuario_id);
 
 if (!$stmt->execute())
 {
     http_response_code(500);
     echo json_encode([
         'status'  => 'error',
-        'message' => 'Error al ejecutar la consulta',
+        'message' => 'Error al actualizar el estado',
         'error'   => $stmt->error
     ]);
     $stmt->close();
@@ -84,21 +80,12 @@ if (!$stmt->execute())
     exit();
 }
 
-$resultado = $stmt->get_result();
-
-$usuarios = [];
-while ($fila = $resultado->fetch_assoc())
-{
-    $usuarios[] = $fila;
-}
-
 echo json_encode([
     'status'     => 'success',
-    'message'    => 'Consulta realizada correctamente',
-    'total'      => count($usuarios),
-    'empresa_id' => $empresa_id,
-    'data'       => $usuarios
-], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+    'message'    => $estado === 1 ? 'Acceso concedido' : 'Acceso revocado',
+    'usuario_id' => $usuario_id,
+    'estado'     => $estado
+], JSON_UNESCAPED_UNICODE);
 
 $stmt->close();
 $conexion->close();
